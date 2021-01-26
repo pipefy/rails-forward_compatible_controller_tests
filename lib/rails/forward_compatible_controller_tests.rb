@@ -50,12 +50,21 @@ module Rails
         request_headers = args[1]&.dup unless controller_test
         request_flash = args[2]&.dup if controller_test
         request_format = nil
+        request_body = nil
 
         old_method = false
         xhr = false
-        if args.size == 1
+
+        if request_params.is_a?(String)
+          request_body = request_params
+          request_params = {}
+          old_method = true
+        elsif args.size == 1
           xhr = request_params.delete(:xhr)
-          request_format = request_params.delete(:format)
+          request_as = request_params.delete(:as)
+          request_format = request_params.delete(:format) || request_as
+          request_body = request_params.delete(:body)
+
           if request_params[:params].is_a?(Hash)
             request_session = request_params.delete(:session) || request_session if controller_test
             request_headers = request_params.delete(:headers) || request_headers unless controller_test
@@ -81,12 +90,16 @@ module Rails
             request_session = nil
             request_headers = nil
             request_params = nil
-          elsif !xhr && !request_format
+          elsif !xhr && !request_format && !request_body
             old_method = true
           end
         elsif request_headers.is_a?(Hash) || request_session.is_a?(Hash) ||
               request_flash.is_a?(Hash)
           old_method = true
+        end
+
+        if request_body.present?
+          request.env['RAW_POST_DATA'] = request_body
         end
 
         raise Exception, ERROR_MESSAGE if ForwardCompatibleControllerTests.raise_exception? && old_method

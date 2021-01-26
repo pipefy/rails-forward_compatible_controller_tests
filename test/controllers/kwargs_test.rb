@@ -35,7 +35,6 @@ class KwargsControllerTest < ActionController::TestCase
       refute assigns(:xhr)
     end
 
-
     define_method("test_#{verb}_old_params_only__raises_exception") do
       assert_raise_in_rails_4(Exception) do
         send(verb.to_sym, :test_kwargs, hello: 'world')
@@ -45,6 +44,56 @@ class KwargsControllerTest < ActionController::TestCase
     define_method("test_#{verb}_new_params_only") do
       send(verb.to_sym, :test_kwargs, params: { hello: 'world', session: { a: 'foo' } })
       assert_equal({ 'hello' => 'world', 'session' => { 'a' => 'foo' } }, assigns(:params))
+      assert_nil assigns(:hello_header)
+      assert_nil assigns(:session)
+      assert_nil assigns(:flash)
+      refute assigns(:xhr)
+    end
+
+    define_method("test_#{verb}_old_body_only") do
+      Rails::ForwardCompatibleControllerTests.ignore
+
+      body = { hello: 'world' }.to_json
+
+      send(verb.to_sym, :test_kwargs, body)
+      assert_equal(body, request.env['RAW_POST_DATA'])
+      assert_empty assigns(:params)
+      assert_nil assigns(:hello_header)
+      assert_nil assigns(:session)
+      assert_nil assigns(:flash)
+      refute assigns(:xhr)
+    end
+
+    define_method("test_#{verb}_old_body_only__outputs_deprecation") do
+      Rails::ForwardCompatibleControllerTests.deprecate
+
+      body = { hello: 'world' }.to_json
+
+      assert_deprecated do
+        send(verb.to_sym, :test_kwargs, body)
+      end
+
+      assert_equal(body, request.env['RAW_POST_DATA'])
+      assert_empty assigns(:params)
+      assert_nil assigns(:hello_header)
+      assert_nil assigns(:session)
+      assert_nil assigns(:flash)
+      refute assigns(:xhr)
+    end
+
+    define_method("test_#{verb}_old_body_only__raises_exception") do
+      assert_raise_in_rails_4(Exception) do
+        send(verb.to_sym, :test_kwargs, { hello: 'world' }.to_json)
+      end
+    end
+
+    define_method("test_#{verb}_new_body_only") do
+      body = { hello: 'world', session: { a: 'foo' } }.to_json
+
+      send(verb.to_sym, :test_kwargs, body: body)
+
+      assert_equal(body, request.env['RAW_POST_DATA'])
+      assert_empty assigns(:params)
       assert_nil assigns(:hello_header)
       assert_nil assigns(:session)
       assert_nil assigns(:flash)
@@ -74,7 +123,6 @@ class KwargsControllerTest < ActionController::TestCase
       assert_nil assigns(:flash)
       assert assigns(:xhr)
     end
-
 
     define_method("test_xhr_#{verb}_old_params_only__raises_exception") do
       assert_raise_in_rails_4(Exception) do
@@ -553,6 +601,21 @@ class KwargsControllerTest < ActionController::TestCase
       refute assigns(:xhr)
     end
 
+    define_method("test_#{verb}_new_params_and_session_and_flash_and_body") do
+      session = { sesh: 'shin' }
+      params = { hello: 'world' }
+      flash = { flashy: 'flash' }
+      body = { foo: 'bar' }.to_json
+
+      send(verb.to_sym, :test_kwargs, params: params, session: session, flash: flash, body: body)
+      assert_equal(params.stringify_keys, assigns(:params))
+      assert_equal(body, request.env['RAW_POST_DATA'])
+      assert_equal(session[:sesh], assigns(:session))
+      assert_equal(flash[:flashy], assigns(:flash))
+      assert_nil assigns(:hello_header)
+      refute assigns(:xhr)
+    end
+
     define_method("test_xhr_#{verb}_old_params_and_session_and_flash") do
       Rails::ForwardCompatibleControllerTests.ignore
 
@@ -612,6 +675,20 @@ class KwargsControllerTest < ActionController::TestCase
       assert_equal('flash', assigns(:flash))
       assert_nil assigns(:hello_header)
       assert assigns(:xhr)
+    end
+
+    define_method("test_#{verb}_as_without_format_keyword") do
+      Rails::ForwardCompatibleControllerTests.ignore
+
+      send(verb.to_sym, :test_kwargs, as: :json)
+      assert_equal({ 'format' => 'json' }, assigns(:params))
+    end
+
+    define_method("test_#{verb}_as_with_format_keyword") do
+      Rails::ForwardCompatibleControllerTests.ignore
+
+      send(verb.to_sym, :test_kwargs, format: :html, as: :json)
+      assert_equal({ 'format' => 'html' }, assigns(:params))
     end
   end
 end
