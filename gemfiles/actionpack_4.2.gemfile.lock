@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    rails-forward_compatible_controller_tests (2.3.2)
+    rails-forward_compatible_controller_tests (2.5.0)
       actionpack (>= 4.2, < 5.1)
 
 GEM
@@ -96,4 +96,4 @@ DEPENDENCIES
   rspec-rails (= 3.8.0)
 
 BUNDLED WITH
-   1.16.5
+   1.17.3
